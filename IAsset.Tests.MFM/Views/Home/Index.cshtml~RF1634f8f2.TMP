@@ -1,0 +1,187 @@
+﻿
+@{
+    ViewBag.Title = "Weather Inquiry Form";
+}
+@model IAsset.Tests.MFM.Contracts.IHomeViewModel
+
+<div class="container">
+    <h1 class="well">Weather Inquiry Form</h1>
+    <div class="col-lg-12 well">
+        <div class="row">
+            <form>
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-12 form-group">
+                            <label>Select Country</label>
+                            @Html.DropDownList("Country", new SelectList(Model.Countries, "Value", "Value"), new { @class = "form-control", onchange= "IAsset.MFM.ShowHideCity();" })
+                        </div>
+                    </div>  
+                    <div class="row" id="CityRow" style="display:none;">
+                        <div class="col-sm-12 form-group">
+                            <label>Select City</label>
+                            <select id="City" class="form-control" onchange= "IAsset.MFM.ShowWeatherDetails();"></select>
+                            <div id="CitiesLoading">Loading Cities...</div>
+                        </div>
+                    </div>  
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row" style="display:none;" id="WeatherCard">
+        <div class="col">
+            <div class="weather-card one">
+                <div class="top">
+                    <div class="wrapper">
+                        <div class="mynav">
+                            <a href="javascript:;"><span class="lnr lnr-chevron-left"></span></a>
+                            <a href="javascript:;"><span class="lnr lnr-cog"></span></a>
+                        </div>
+                        <h4 class="datetime"></h4>
+                        <h1 class="heading"></h1>
+                        <h3 class="location"></h3>
+                        <p class="temp">
+                            <span class="temp-value"></span>
+                            <span class="deg">0</span>
+                            <a href="javascript:;"><span class="temp-type">C</span></a>
+                        </p>
+                        <p class="temp mintemp">
+                            Min: <span class="mintemp-value"></span> <sup>0</sup><span>C</span>
+                        </p>
+                        <p class="temp maxtemp">
+                            Max: <span class="maxtemp-value"></span> <sup>0</sup><span>C</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="bottom">
+                    <div class="wrapper">
+                        <ul class="forecast">
+                            <a href="javascript:;"><span class="lnr lnr-chevron-up go-up"></span></a>
+                            <li class="active">
+                                <span class="date">Yesterday</span>
+                                <span class="lnr lnr-sun condition">
+                                    <span class="temp">23<span class="deg">0</span><span class="temp-type">C</span></span>
+                                </span>
+                            </li>
+                            <li>
+                                <span class="date">Tomorrow</span>
+                                <span class="lnr lnr-cloud condition">
+                                    <span class="temp">21<span class="deg">0</span><span class="temp-type">C</span></span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>        
+    </div>
+</div>
+
+@section PageSpecificJS
+{
+    <script>
+        window.IAsset = window.IAsset || {};
+        IAsset.MFM = function (MFM, $) {
+            MFM.ShowHideCity = function () {
+                $('#City option').remove();
+                $('#City').hide();
+                $('#WeatherCard').hide();
+                $('#CitiesLoading').show(200);
+                $.ajax({
+                    url: "/api/GetCities?country=" + encodeURIComponent($("#Country").val()),
+                    success: function (result) {
+                        result = JSON.parse(result).NewDataSet;
+                        if (result) {
+                            $('<option/>').val("").html("Select City...").appendTo('#City');
+                            if (result.Table.length) {
+                                for (var i = 0; i < result.Table.length; i++) {
+                                    $('<option/>').val(result.Table[i].City).html(result.Table[i].City).appendTo('#City');
+                                }
+                            }
+                            else
+                                $('<option/>').val(result.Table.City).html(result.Table.City).appendTo('#City');
+                        }
+                        else
+                            $('<option/>').val("").html("[No Cities defined for this country]").appendTo('#City');
+                        
+                        $('#CitiesLoading').hide();
+                        $('#City').show(200);
+                    },
+                    error: function (result) {
+                        alert("error");
+                    }
+                });
+                if ($("#Country").val() != "")
+                    $("#CityRow").show(300);
+                else
+                    $("#CityRow").hide(300);
+            };
+
+            MFM.ShowWeatherDetails = function () {
+                $('#WeatherCard').hide();
+                $.ajax({
+                    url: "/api/GetWeather?country=" + encodeURIComponent($("#Country").val()) + "&city=" + $("#City").val(),
+                    success: function (result) {
+                        var result = JSON.parse(result.json);
+                        var mode = result.mode;
+                        var weather = MFM.OpenweathermapToWeather(result);
+                        weather.Country = $("#Country").val();
+                        weather.City = $("#City").val();
+                        MFM.RenderWeather(weather);
+                    },
+                    error: function (result) {
+                        alert("error");
+                    }
+                });
+            };
+
+            MFM.Weather = function () {
+                this.Country;
+                this.City;
+                this.Location;
+                this.Time;
+                this.Wind;
+                this.Visibility;
+                this.SkyConditions;
+                this.Temperature;
+                this.MinTemperature;
+                this.MaxTemperature;
+                this.DewPoint;
+                this.RelativeHumidity;
+                this.Pressure;
+            };
+
+            MFM.OpenweathermapToWeather = function(rawJson){
+                console.log(rawJson)
+                var weather = new MFM.Weather();
+                weather.Location = rawJson.coord.lon + "," + rawJson.coord.lat;
+                var _date = new Date(parseInt(rawJson.dt) * 1000);
+                weather.Time = myDate.getMonth() + 1) + "/" + myDate.getDate() + "/" + myDate.getFullYear() + " " + myDate.getHours() + ":" + myDate.getMinutes();
+                weather.Wind = rawJson.wind.speed;
+                weather.Visibility = rawJson.visibility;
+                weather.SkyConditions = rawJson.weather[0].main;
+                weather.Temperature = rawJson.main.temp;
+                weather.MinTemperature = rawJson.main.temp_min;
+                weather.MaxTemperature = rawJson.main.temp_max;
+                weather.DewPoint = rawJson.sys.sunset;
+                weather.RelativeHumidity = rawJson.main.humidity;
+                weather.Pressure = rawJson.main.pressure;
+                return weather;
+            };
+
+            MFM.RenderWeather = function (weather) {
+                $(".location").text(weather.City + ", " + weather.Country);
+                $(".heading").text(weather.SkyConditions);
+                $(".temp-value").text(weather.Temperature);
+                $(".mintemp-value").text(weather.MinTemperature);
+                $(".maxtemp-value").text(weather.MaxTemperature);
+                $(".datetime").text(weather.Time);
+                
+                
+                $('#WeatherCard').show("slow");
+            };
+
+            return MFM;
+        }(IAsset.MFM = IAsset.MFM || {}, jQuery);
+    </script>
+}
+

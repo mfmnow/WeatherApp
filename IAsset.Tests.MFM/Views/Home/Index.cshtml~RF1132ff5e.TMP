@@ -1,0 +1,46 @@
+﻿
+@{
+    ViewBag.Title = "Weather Inquiry Form";
+}
+@model IAsset.Tests.MFM.Contracts.IHomeViewModel
+
+<div class="container">
+    <h1 class="well">Weather Inquiry Form</h1>
+    <div class="col-lg-12 well">
+        <div class="row">
+            <form>
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-12 form-group">
+                            <label>Select Country</label>
+                            @Html.DropDownList("Country", new SelectList(Model.Countries, "Key", "Value"), new { @class = "form-control", onchange= "IAsset.MFM.ShowHideCity();" })
+                        </div>
+                    </div>  
+                    <div class="row" id="CityRow" style="display:none;">
+                        <div class="col-sm-12 form-group">
+                            <label>Select City</label>
+                            <input type="text" placeholder="Enter Last Name Here.." class="form-control">
+                        </div>
+                    </div>  
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section PageSpecificJS
+{
+    <script>
+        window.IAsset = window.IAsset || {};
+        IAsset.MFM = function ($) {
+            MFM.ShowHideCity = function () {
+                console.log($)
+                if ($("#Country").val() != "")
+                    $("#CityRow").show(300);
+                else
+                    $("#CityRow").hide(300);
+            };
+        }(IAsset.MFM = IAsset.MFM || {}, jQuery);
+    </script>
+}
+
